@@ -23,8 +23,16 @@ class DependencyContainer {
         return CocktailRepository(networkService: networkService)
     }()
     
+    lazy var mealRepository: MealRepositoryProtocol = {
+        return MealRepository(networkService: networkService)
+    }()
+    
     // MARK: - View Models
     func makeCocktailViewModel() -> CocktailViewModel {
         return CocktailViewModel(repository: cocktailRepository)
+    }
+    
+    func makeMealViewModel() -> MealViewModel {
+        return MealViewModel(repository: mealRepository)
     }
 }

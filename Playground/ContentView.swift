@@ -8,6 +8,25 @@
 import SwiftUI
 
 struct ContentView: View {
+    var body: some View {
+        TabView {
+            CocktailTabView()
+                .tabItem {
+                    Image(systemName: "wineglass")
+                    Text("Cocktails")
+                }
+            
+            MealTabView()
+                .tabItem {
+                    Image(systemName: "fork.knife")
+                    Text("Meals")
+                }
+        }
+    }
+}
+
+// MARK: - Cocktail Tab View
+struct CocktailTabView: View {
     @StateObject private var viewModel: CocktailViewModel
     
     init() {
@@ -42,6 +61,42 @@ struct ContentView: View {
     }
 }
 
+// MARK: - Meal Tab View
+struct MealTabView: View {
+    @StateObject private var viewModel: MealViewModel
+    
+    init() {
+        // Dependency Injection
+        self._viewModel = StateObject(wrappedValue: DependencyContainer.shared.makeMealViewModel())
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                switch viewModel.state {
+                case .loading:
+                    LoadingView()
+                case .loaded(let meals):
+                    MealListView(meals: meals)
+                case .error(let error):
+                    ErrorView(error: error) {
+                        Task {
+                            await viewModel.refreshMeals()
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Seafood Meals")
+            .refreshable {
+                await viewModel.refreshMeals()
+            }
+        }
+        .task {
+            await viewModel.loadMeals()
+        }
+    }
+}
+
 // MARK: - Loading View
 struct LoadingView: View {
     var body: some View {
@@ -63,6 +118,18 @@ struct CocktailListView: View {
     var body: some View {
         List(cocktails) { cocktail in
             CocktailRowView(cocktail: cocktail)
+        }
+        .listStyle(PlainListStyle())
+    }
+}
+
+// MARK: - Meal List View
+struct MealListView: View {
+    let meals: [Meal]
+    
+    var body: some View {
+        List(meals) { meal in
+            MealRowView(meal: meal)
         }
         .listStyle(PlainListStyle())
     }
@@ -95,6 +162,43 @@ struct CocktailRowView: View {
                     .lineLimit(2)
                 
                 Text("Cocktail")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Meal Row View
+struct MealRowView: View {
+    let meal: Meal
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            AsyncImage(url: URL(string: meal.imageURL)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+                    .overlay(
+                        Image(systemName: "photo")
+                            .foregroundColor(.gray)
+                    )
+            }
+            .frame(width: 60, height: 60)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(meal.name)
+                    .font(.headline)
+                    .lineLimit(2)
+                
+                Text("Seafood")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
